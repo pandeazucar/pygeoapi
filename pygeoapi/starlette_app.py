@@ -144,28 +144,32 @@ async def describe_collections(request: Request, name=None):
     return response
 
 
-@app.route('/collections/{feature_collection}/items')
-@app.route('/collections/{feature_collection}/items/')
-@app.route('/collections/{feature_collection}/items/{feature}')
-@app.route('/collections/{feature_collection}/items/{feature}/')
-async def dataset(request: Request, feature_collection=None, feature=None):
+@app.route('/search')
+@app.route('/search/')
+@app.route('/collections/{collection_id}/items')
+@app.route('/collections/{collection_id}/items/')
+@app.route('/collections/{collection_id}/items/{feature}')
+@app.route('/collections/{collection_id}/items/{feature}/')
+async def dataset(request: Request, collection_id=None, feature=None):
     """
     OGC open api collections/{dataset}/items/{feature}  access point
 
     :returns: Starlette HTTP Response
     """
 
-    if 'feature_collection' in request.path_params:
-        feature_collection = request.path_params['feature_collection']
+    if collection_id is None and 'search' in request.path:  # STAC search
+        collection_id = 'search'
+    if 'collection_id' in request.path_params:
+        collection_id = request.path_params['collection_id']
     if 'feature' in request.path_params:
         feature = request.path_params['feature']
     if feature is None:
         headers, status_code, content = api_.get_collection_items(
-            request.headers, request.query_params,
-            feature_collection, pathinfo=request.scope['path'])
+            request.headers, request.query_params, request.body(),
+            collection_id, pathinfo=request.scope['path'])
     else:
         headers, status_code, content = api_.get_collection_item(
-            request.headers, request.query_params, feature_collection, feature)
+            request.headers, request.query_params, collection_id, feature)
 
     response = Response(content=content, status_code=status_code)
 

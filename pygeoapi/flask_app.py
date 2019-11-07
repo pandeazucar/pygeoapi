@@ -135,21 +135,25 @@ def describe_collections(name=None):
     return response
 
 
-@APP.route('/collections/<feature_collection>/items')
-@APP.route('/collections/<feature_collection>/items/<feature>')
-def dataset(feature_collection, feature=None):
+@APP.route('/search')
+@APP.route('/collections/<collection_id>/items')
+@APP.route('/collections/<collection_id>/items/<feature>')
+def dataset(collection_id=None, feature=None):
     """
     OGC open api collections/{dataset}/items/{feature}  access point
 
     :returns: HTTP response
     """
 
+    if collection_id is None and 'search' in request.path:  # STAC search
+        collection_id = 'search'
+
     if feature is None:
         headers, status_code, content = api_.get_collection_items(
-            request.headers, request.args, feature_collection)
+            request.headers, request.args, request.data, collection_id)
     else:
         headers, status_code, content = api_.get_collection_item(
-            request.headers, request.args, feature_collection, feature)
+            request.headers, request.args, collection_id, feature)
 
     response = make_response(content, status_code)
 

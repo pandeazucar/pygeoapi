@@ -44,7 +44,7 @@ server:
         attribution: '<a href="https://wikimediafoundation.org/wiki/Maps_Terms_of_Use">Wikimedia maps</a> | Map data &copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
 
 logging:
-    level: ERROR
+    level: DEBUG
     #logfile: /tmp/pygeoapi.log
 
 metadata:
@@ -135,6 +135,57 @@ datasets:
             name: GeoJSON
             data: tests/data/ne_110m_lakes.geojson
             id_field: id
+
+    populated-place:
+        title: Populated places
+        description: Populated places
+        keywords:
+            - population
+        links:
+            - type: text/html
+              rel: canonical
+              title: information
+              href: http://www.naturalearthdata.com/
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+#            temporal:
+#                begin: 2011-11-11
+#                end: null  # or empty (either means open ended)
+        provider:
+            name: Elasticsearch
+            data: http://localhost:9200/ne_110m_populated_places_simple/FeatureCollection
+            id_field: geonameid
+
+catalogues:
+    landsat8-aws:
+        type: STAC
+        default: true
+        title: Landsat 8 AWS catalog
+        description: Landsat 8 AWS catalog
+        keywords:
+            - landsat
+        links:
+            - type: text/html
+              rel: canonical
+              title: information
+              href: https://registry.opendata.aws/landsat-8
+              hreflang: en-US
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+            temporal:
+                begin: 2013-03-18
+                end: null  # or empty (either means open ended)
+        provider:
+            name: Elasticsearch
+            data: http://localhost:9200/landsat8-aws/FeatureCollection
+            id_field: "landsat:scene_id"
+            time_field: "datetime"
+        
 
 processes:
     hello-world:

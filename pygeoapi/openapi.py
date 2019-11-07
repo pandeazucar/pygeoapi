@@ -462,6 +462,31 @@ def get_oas_30(cfg):
             if 'example' in p.metadata:
                 paths['{}/jobs'.format(process_name_path)]['post']['requestBody']['content']['application/json']['example'] = p.metadata['example']  # noqa
 
+    catalogues = cfg.get('catalogues', {})
+
+    if catalogues:
+        paths['/search'] = {
+            'get': {
+                'summary': 'Search collections',
+                'description': 'Search collections',
+                'tags': [list(catalogues.keys())],
+                'parameters': [
+                    items_f,
+                    {'$ref': '{}#/components/parameters/bbox'.format(OPENAPI_YAML['oapif'])},  # noqa
+                    {'$ref': '{}#/components/parameters/limit'.format(OPENAPI_YAML['oapif'])},  # noqa
+                    {'$ref': '#/components/parameters/sortby'},
+                    {'$ref': '#/components/parameters/startindex'},
+                    {'$ref': '{}#/components/parameters/datetime'.format(OPENAPI_YAML['oapif'])}  # noqa
+                ],
+                'responses': {
+                    200: {'$ref': '{}#/components/responses/Features'.format(OPENAPI_YAML['oapif'])},  # noqa
+                    400: {'$ref': '{}#/components/responses/InvalidParameter'.format(OPENAPI_YAML['oapif'])},  # noqa
+                    404: {'$ref': '{}#/components/responses/NotFound'.format(OPENAPI_YAML['oapif'])},  # noqa
+                    500: {'$ref': '{}#/components/responses/ServerError'.format(OPENAPI_YAML['oapif'])}  # noqa
+                }
+            }
+        }
+
     oas['paths'] = paths
 
     return oas

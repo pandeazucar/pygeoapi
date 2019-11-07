@@ -191,53 +191,53 @@ def test_describe_collections(config, api_):
 def test_get_collection_items(config, api_):
     req_headers = make_req_headers()
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {}, 'foo')
+        req_headers, {}, None, 'foo')
     features = json.loads(response)
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'f': 'foo'}, 'obs')
+        req_headers, {'f': 'foo'}, None, 'obs')
     features = json.loads(response)
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'bbox': '1,2,3'}, 'obs')
+        req_headers, {'bbox': '1,2,3'}, None, 'obs')
     features = json.loads(response)
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'bbox': '1,2,3,4c'}, 'obs')
+        req_headers, {'bbox': '1,2,3,4c'}, None, 'obs')
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'f': 'html'}, 'obs')
+        req_headers, {'f': 'html'}, None, 'obs')
     assert rsp_headers['Content-Type'] == 'text/html'
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {}, 'obs')
+        req_headers, {}, None, 'obs')
     features = json.loads(response)
 
     assert len(features['features']) == 5
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'resulttype': 'hits'}, 'obs')
+        req_headers, {'resulttype': 'hits'}, None, 'obs')
     features = json.loads(response)
 
     assert len(features['features']) == 0
 
     # Invalid limit
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'limit': 0}, 'obs')
+        req_headers, {'limit': 0}, None, 'obs')
     features = json.loads(response)
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'limit': 2}, 'obs')
+        req_headers, {'limit': 2}, None, 'obs')
     features = json.loads(response)
 
     assert len(features['features']) == 2
@@ -256,13 +256,13 @@ def test_get_collection_items(config, api_):
 
     # Invalid startindex
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'startindex': -1}, 'obs')
+        req_headers, {'startindex': -1}, None, 'obs')
     features = json.loads(response)
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'startindex': 2}, 'obs')
+        req_headers, {'startindex': 2}, None, 'obs')
     features = json.loads(response)
 
     assert len(features['features']) == 3
@@ -281,7 +281,7 @@ def test_get_collection_items(config, api_):
 
     rsp_headers, code, response = api_.get_collection_items(
         req_headers, {'startindex': 1, 'limit': 1,
-                      'bbox': '-180,90,180,90'}, 'obs')
+                      'bbox': '-180,90,180,90'}, None, 'obs')
     features = json.loads(response)
 
     assert len(features['features']) == 1
@@ -304,69 +304,69 @@ def test_get_collection_items(config, api_):
     assert links[4]['rel'] == 'collection'
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'sortby': 'stn_id', 'stn_id': '35'}, 'obs')
+        req_headers, {'sortby': 'stn_id', 'stn_id': '35'}, None, 'obs')
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
         req_headers, {'sortby': 'stn_id:FOO', 'stn_id': '35', 'value': '89.9'},
-        'obs')
+        None, 'obs')
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'sortby': 'stn_id:A'}, 'obs')
+        req_headers, {'sortby': 'stn_id:A'}, None, 'obs')
     features = json.loads(response)
     # FIXME? this test errors out currently
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'f': 'csv'}, 'obs')
+        req_headers, {'f': 'csv'}, None, 'obs')
 
     assert rsp_headers['Content-Type'] == 'text/csv; charset=utf-8'
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '2003'}, 'obs')
+        req_headers, {'datetime': '2003'}, None, 'obs')
 
     assert code == 200
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '1999'}, 'obs')
+        req_headers, {'datetime': '1999'}, None, 'obs')
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '2010-04-22'}, 'obs')
+        req_headers, {'datetime': '2010-04-22'}, None, 'obs')
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '2001-11-11/2003-12-18'}, 'obs')
+        req_headers, {'datetime': '2001-11-11/2003-12-18'}, None, 'obs')
 
     assert code == 200
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '../2003-12-18'}, 'obs')
+        req_headers, {'datetime': '../2003-12-18'}, None, 'obs')
 
     assert code == 200
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '2001-11-11/..'}, 'obs')
+        req_headers, {'datetime': '2001-11-11/..'}, None, 'obs')
 
     assert code == 200
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '1999/2005-04-22'}, 'obs')
+        req_headers, {'datetime': '1999/2005-04-22'}, None, 'obs')
 
     assert code == 400
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '2002/2014-04-22'}, 'obs')
+        req_headers, {'datetime': '2002/2014-04-22'}, None, 'obs')
 
     api_.config['datasets']['obs']['extents'].pop('temporal')
 
     rsp_headers, code, response = api_.get_collection_items(
-        req_headers, {'datetime': '2002/2014-04-22'}, 'obs')
+        req_headers, {'datetime': '2002/2014-04-22'}, None, 'obs')
 
     assert code == 200
 

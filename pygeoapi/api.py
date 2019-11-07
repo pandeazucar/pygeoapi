@@ -408,12 +408,14 @@ class API(object):
 
         return headers_, 200, json.dumps(fcm, default=json_serial)
 
-    def get_collection_items(self, headers, args, dataset, pathinfo=None):
+    def get_collection_items(self, headers, args, data, dataset,
+                             pathinfo=None):
         """
         Queries feature collection
 
         :param headers: dict of HTTP headers
-        :param args: dict of HTTP request parameters
+        :param args: `dict` of HTTP request parameters
+        :param data: `dict` of filter
         :param dataset: dataset name
         :param pathinfo: path location
 
@@ -423,18 +425,57 @@ class API(object):
         headers_ = HEADERS.copy()
 
         properties = []
+        resource_to_query = None
         reserved_fieldnames = ['bbox', 'f', 'limit', 'startindex',
                                'resulttype', 'datetime']
         formats = FORMATS
         formats.extend(f.lower() for f in PLUGINS['formatter'].keys())
 
-        if dataset not in self.config['datasets'].keys():
+        if dataset == 'search':
+            if not self.config.get('catalogues', {}):
+                exception = {
+                    'code': 'InvalidParameterValue',
+                    'description': 'No catallgues defined'
+                }
+                LOGGER.error(exception)
+                return headers_, 500, json.dumps(exception,
+                                                 default=json_serial)
+
+            collections = args.get('collections', None)
+
+            if collections is None:  # get default catalogue
+                for k, v in self.config['catalogues'].items():
+                    if v['default']:
+                        resource_to_query = self.config['catalogues'][k]
+                if resource_to_query is None:
+                    exception = {
+                        'code': 'InvalidParameterValue',
+                        'description': 'No default collection'
+                    }
+                    LOGGER.error(exception)
+                    return headers_, 500, json.dumps(exception,
+                                                     default=json_serial)
+            else:
+                if collections not in self.config['catalogues'].keys():
+                    exception = {
+                        'code': 'InvalidParameterValue',
+                        'description': 'Invalid collection'
+                    }
+                    LOGGER.error(exception)
+                    return headers_, 400, json.dumps(exception,
+                                                     default=json_serial)
+
+                resource_to_query = self.config['catalogues'][collections]
+
+        elif dataset not in self.config['datasets'].keys():
             exception = {
                 'code': 'InvalidParameterValue',
                 'description': 'Invalid feature collection'
             }
             LOGGER.error(exception)
             return headers_, 400, json.dumps(exception, default=json_serial)
+        else:
+            resource_to_query = self.config['datasets'][dataset]
 
         format_ = check_format(args, headers)
 
@@ -512,8 +553,8 @@ class API(object):
         datetime_invalid = False
 
         if (datetime_ is not None and
-                'temporal' in self.config['datasets'][dataset]['extents']):
-            te = self.config['datasets'][dataset]['extents']['temporal']
+                'temporal' in resource_to_query['extents']):
+            te = resource_to_query['extents']['temporal']
 
             if '/' in datetime_:  # envelope
                 LOGGER.debug('detected time range')
@@ -553,7 +594,7 @@ class API(object):
         LOGGER.debug('Loading provider')
         try:
             p = load_plugin('provider',
-                            self.config['datasets'][dataset]['provider'])
+                            resource_to_query['provider'])
         except ProviderConnectionError:
             exception = {
                 'code': 'NoApplicableCode',
@@ -682,7 +723,7 @@ class API(object):
         content['links'].append(
             {
                 'type': 'application/json',
-                'title': self.config['datasets'][dataset]['title'],
+                'title': resource_to_query['title'],
                 'rel': 'collection',
                 'href': '{}/collections/{}'.format(
                     self.config['server']['url'], dataset)
@@ -721,8 +762,7 @@ class API(object):
             content = formatter.write(
                 data=content,
                 options={
-                    'provider_def':
-                        self.config['datasets'][dataset]['provider']
+                    'provider_def': resource_to_query['provider']
                 }
             )
 
