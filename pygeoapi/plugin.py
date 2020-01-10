@@ -45,7 +45,7 @@ PLUGINS = {
         'PostgreSQL': 'pygeoapi.provider.postgresql.PostgreSQLProvider',
         'SQLiteGPKG': 'pygeoapi.provider.sqlite.SQLiteGPKGProvider',
         'rasterio': 'pygeoapi.provider.rasterio_.RasterioProvider',
-        'xarray': 'pygeoapi.provider.xarray.XarrayProvider',
+        'xarray': 'pygeoapi.provider.xarray.XarrayProvider'
     },
     'formatter': {
         'CSV': 'pygeoapi.formatter.csv_.CSVFormatter'
