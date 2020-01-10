@@ -44,9 +44,7 @@ class RasterioProvider(BaseProvider):
     def __init__(self, provider_def):
         """
         Initialize object
-
         :param provider_def: provider definition
-
         :returns: pygeoapi.providers.rasterio_.RasterioProvider
         """
 
