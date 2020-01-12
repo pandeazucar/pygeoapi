@@ -568,7 +568,8 @@ class API(object):
 
         if 'rangeSubset' in args:
             LOGGER.debug('Processing rangeSubset parameter')
-            query_args['bands'] = args['rangeSubset'].split(',')
+            query_args['bands'] = list(filter(None, args['rangeSubset'].split(',')))
+            print("API", query_args['bands'])
         elif 'subset' in args:
             LOGGER.debug('Processing subset parameters')
             for s in args.getlist('subset'):
