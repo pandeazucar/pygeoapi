@@ -139,7 +139,7 @@ datasets:
               hreflang: en-CA
         provider:
             name: rasterio
-            data: /Users/tomkralidis/Dev/pygeoapi/pygeoapi/tests/data/CMIP5_rcp8.5_annual_abs_latlon1x1_PCP_pctl25_P1Y.nc
+            data: /Users/${USER}/Dev/pygeoapi/pygeoapi/tests/data/CMIP5_rcp8.5_annual_abs_latlon1x1_PCP_pctl25_P1Y.nc
             id_field: null
     obs:
         type: feature
