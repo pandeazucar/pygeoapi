@@ -33,6 +33,7 @@ pygeoapi |release| documentation
    install
    openapi
    docker
+   devel
    wsgi
 #   asgi
    configuration
