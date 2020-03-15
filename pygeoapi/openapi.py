@@ -339,38 +339,41 @@ def get_oas_30(cfg):
             paths[items_path]['get']['parameters'].append(
                 {'$ref': '{}#/components/parameters/datetime'.format(OPENAPI_YAML['oapif'])})  # noqa
 
-        for k2, v2 in p.fields.items():
-            if p.properties and k2 in p.properties:
-                path_ = '{}/items'.format(collection_name_path)
+        for field, type in p.fields.items():
 
-                if v2['type'] == 'date':
-                    schema = {
-                        'type': 'string',
-                        'format': 'date'
-                    }
-                elif v2['type'] == 'float':
-                    schema = {
-                        'type': 'number',
-                        'format': 'float'
-                    }
-                elif v2['type'] == 'long':
-                    schema = {
-                        'type': 'integer',
-                        'format': 'int64'
-                    }
-                else:
-                    schema = {
-                        'type': v2['type']
-                    }
+            if p.properties and field not in p.properties:
+                LOGGER.debug('Provider specified not to advertise property')
+                continue
 
-                paths['{}'.format(path_)]['get']['parameters'].append({
-                    'name': k2,
-                    'in': 'query',
-                    'required': False,
-                    'schema': schema,
-                    'style': 'form',
-                    'explode': False
-                })
+            if type == 'date':
+                schema = {
+                    'type': 'string',
+                    'format': 'date'
+                }
+            elif type == 'float':
+                schema = {
+                    'type': 'number',
+                    'format': 'float'
+                }
+            elif type == 'long':
+                schema = {
+                    'type': 'integer',
+                    'format': 'int64'
+                }
+            else:
+                schema = {
+                    'type': type
+                }
+
+            path_ = '{}/items'.format(collection_name_path)
+            paths['{}'.format(path_)]['get']['parameters'].append({
+                'name': field,
+                'in': 'query',
+                'required': False,
+                'schema': schema,
+                'style': 'form',
+                'explode': False
+            })
 
         paths['{}/items/{{featureId}}'.format(collection_name_path)] = {
             'get': {
