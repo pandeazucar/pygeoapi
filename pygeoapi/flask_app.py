@@ -230,6 +230,27 @@ def execute_process(name=None):
     return response
 
 
+@APP.route('/stac', defaults={'path': ''})
+@APP.route('/stac/<path:path>.json')
+@APP.route('/stac/<path:path>/catalog.json')
+def stac(path):
+    """
+    STAC access point
+
+    :returns: HTTP response
+    """
+
+    headers, status_code, content = api_.get_stac_path(
+        request.headers, request.args, path)
+
+    response = make_response(content, status_code)
+
+    if headers:
+        response.headers = headers
+
+    return response
+
+
 @click.command()
 @click.pass_context
 @click.option('--debug', '-d', default=False, is_flag=True, help='debug')

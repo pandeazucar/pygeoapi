@@ -944,6 +944,56 @@ class API(object):
 
     @pre_process
     @jsonldify
+    def get_stac_path(self, headers_, format_, path):
+
+        LOGGER.debug('Path: {}'.format(path))
+        dir_tokens = path.split('/')
+        if dir_tokens:
+            dataset = dir_tokens[0]
+
+        if dataset not in self.config['datasets']:
+            exception = {
+                'code': 'NotFound',
+                'description': 'collection not found'
+            }
+            LOGGER.error(exception)
+            return headers_, 404, json.dumps(exception)
+
+        LOGGER.debug('Loading provider')
+        p = load_plugin('provider',
+                        self.config['datasets'][dataset]['provider'])
+
+        id_ = '{}-stac'.format(dataset)
+        stac_version = '0.6.2'
+        description = self.config['datasets'][dataset]['description']
+
+        content = {
+            'id': id_,
+            'stac_version': stac_version,
+            'description': description,
+            'links': []
+        }
+        try:
+            stac_data = p.get_data(path.replace(dataset, ''))
+        except Exception as err:
+            print("ERR", err)
+            exception = {
+                'code': 'NotFound',
+                'description': 'Icollection not found'
+            }
+            LOGGER.error(exception)
+            return headers_, 404, json.dumps(exception)
+
+
+        #for link in stac_data['links']:
+        #    content['links'].append(link)
+        content.update(stac_data)
+
+        return headers_, 200, json.dumps(content, default=json_serial)
+
+
+    @pre_process
+    @jsonldify
     def describe_processes(self, headers_, format_, process=None):
         """
         Provide processes metadata

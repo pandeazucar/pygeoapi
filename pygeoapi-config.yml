@@ -142,6 +142,29 @@ datasets:
             data: tests/data/ne_110m_lakes.geojson
             id_field: id
 
+    nwp:
+        title: Global Deterministic Forecast System (GDPS)
+        description: Global Deterministic Forecast System (GDPS)
+        keywords:
+            - GRIB2
+            - Analysis
+            - Modelling
+            - Numerical Weather Forecasting
+        links:
+            - type: text/html
+              rel: canonical
+              title: information
+              href: https://weather.gc.ca/grib/grib2_glb_25km_e.html
+              hreflang: en-CA
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        provider:
+            name: FileSystem
+            data: /Users/tomkralidis/Dev/data/gdps
+            id_field: id
+
 processes:
     hello-world:
         processor:
