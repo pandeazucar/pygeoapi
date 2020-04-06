@@ -945,7 +945,59 @@ class API(object):
 
     @pre_process
     @jsonldify
+    def get_stac_root(self, headers_, format_):
+
+        if format_ is not None and format_ not in FORMATS:
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': 'Invalid format'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, json.dumps(exception)
+
+        id_ = 'pygeoapi-stac'
+        stac_version = '0.6.2'
+
+        content = {
+            'id': id_,
+            'stac_version': stac_version,
+            'title': self.config['metadata']['identification']['title'],
+            'description': self.config['metadata']['identification']['description'],  # noqa
+            'links': []
+        }
+
+        for key, value in self.config['datasets'].items():
+            if value['provider']['name'] == 'FileSystem':
+                content['links'].append({
+                    'rel': 'collection',
+                    'href': '{}?f=json'.format(key),
+                    'type': 'application/json'
+                })
+                content['links'].append({
+                    'rel': 'collection',
+                    'href': '{}?f=html'.format(key),
+                    'type': 'text/html'
+                })
+
+        if format_ == 'html':  # render
+            headers_['Content-Type'] = 'text/html'
+            content = render_j2_template(self.config, 'stac-catalog-root.html',
+                                         content)
+            return headers_, 200, content
+
+        return headers_, 200, json.dumps(content, default=json_serial)
+
+    @pre_process
+    @jsonldify
     def get_stac_path(self, headers_, format_, path):
+
+        if format_ is not None and format_ not in FORMATS:
+            exception = {
+                'code': 'InvalidParameterValue',
+                'description': 'Invalid format'
+            }
+            LOGGER.error(exception)
+            return headers_, 400, json.dumps(exception)
 
         LOGGER.debug('Path: {}'.format(path))
         dir_tokens = path.split('/')
@@ -1002,7 +1054,16 @@ class API(object):
 
         if isinstance(stac_data, dict):
             content.update(stac_data)
+            content['links'].extend(self.config['datasets'][dataset]['links'])
+
+            if format_ == 'html':  # render
+                headers_['Content-Type'] = 'text/html'
+                content = render_j2_template(self.config, 'stac-catalog.html',
+                                             content)
+                return headers_, 200, content
+
             return headers_, 200, json.dumps(content, default=json_serial)
+
         else:  # send back file
             headers_.pop('Content-Type', None)
             return headers_, 200, stac_data

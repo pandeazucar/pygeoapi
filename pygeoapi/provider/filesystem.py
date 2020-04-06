@@ -69,7 +69,13 @@ class FileSystemProvider(BaseProvider):
         else:
             child_links.append({
                 'rel': 'parent',
-                'href': '../'
+                'href': '../?f=json',
+                'type': 'application/json'
+            })
+            child_links.append({
+                'rel': 'parent',
+                'href': '../?f=html',
+                'type': 'text/html'
             })
 
             depth = path.count('/')
@@ -79,10 +85,20 @@ class FileSystemProvider(BaseProvider):
         content = {
             'links': [{
                 'rel': 'root',
-                'href': root_link
+                'href': '{}?f=json'.format(root_link),
+                'type': 'application/json'
+                }, {
+                'rel': 'root',
+                'href': '{}?f=html'.format(root_link),
+                'type': 'text/html'
                 }, {
                 'rel': 'self',
-                'href': './'
+                'href': './?f=json',
+                'type': 'application/json',
+                }, {
+                'rel': 'self',
+                'href': './?f=html',
+                'type': 'text/html'
                 }
             ]
         }
@@ -116,11 +132,22 @@ class FileSystemProvider(BaseProvider):
                 if os.path.isdir(fullpath):
                     child_links.append({
                         'rel': 'child',
-                        'href': '{}/'.format(dc)
+                        'href': '{}/?f=json'.format(dc),
+                        'type': 'application/json'
+                    })
+                    child_links.append({
+                        'rel': 'child',
+                        'href': '{}/?f=html'.format(dc),
+                        'type': 'text/html'
                     })
                 elif os.path.isfile(fullpath):
                     basename, extension = os.path.splitext(dc)
                     if extension in self.file_types:
+                        child_links.append({
+                            'rel': 'item',
+                            'href': './{}?f=html'.format(basename),
+                            'type': 'text/html'
+                        })
                         child_links.append({
                             'rel': 'item',
                             'href': './{}'.format(basename)

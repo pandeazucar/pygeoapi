@@ -230,9 +230,27 @@ def execute_process(name=None):
     return response
 
 
-@APP.route('/stac', defaults={'path': ''})
+@APP.route('/stac')
+def stac_catalog_root():
+    """
+    STAC access point
+
+    :returns: HTTP response
+    """
+
+    headers, status_code, content = api_.get_stac_root(
+        request.headers, request.args)
+
+    response = make_response(content, status_code)
+
+    if headers:
+        response.headers = headers
+
+    return response
+
+
 @APP.route('/stac/<path:path>')
-def stac_catalog(path):
+def stac_catalog_path(path):
     """
     STAC access point
 
