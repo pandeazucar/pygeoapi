@@ -142,7 +142,29 @@ datasets:
             data: tests/data/ne_110m_lakes.geojson
             id_field: id
 
-    nwp:
+
+    gcdb:
+        title: Ground Control Database
+        description: Ground Control Database
+        keywords:
+            - ground control
+        links:
+            - type: text/html
+              rel: canonical
+              title: information
+              href: https://weather.gc.ca/grib/grib2_glb_25km_e.html
+              hreflang: en-CA
+        extents:
+            spatial:
+                bbox: [-180,-90,180,90]
+                crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        provider:
+            name: FileSystem
+            data: /Users/tomkralidis/Dev/data/geonode
+            file_types:
+              - .shp
+
+    gdps:
         title: Global Deterministic Forecast System (GDPS)
         description: Global Deterministic Forecast System (GDPS)
         keywords:
@@ -163,7 +185,9 @@ datasets:
         provider:
             name: FileSystem
             data: /Users/tomkralidis/Dev/data/gdps
-            id_field: id
+            file_types:
+              - .grib2
+              - .nc
 
 processes:
     hello-world:

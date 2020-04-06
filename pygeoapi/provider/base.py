@@ -46,9 +46,10 @@ class BaseProvider(object):
 
         self.name = provider_def['name']
         self.data = provider_def['data']
-        self.id_field = provider_def['id_field']
+        self.id_field = provider_def.get('id_field', None)
         self.time_field = provider_def.get('time_field')
         self.properties = provider_def.get('properties', [])
+        self.file_types = provider_def.get('file_types', [])
         self.fields = {}
 
     def get_fields(self):
@@ -117,6 +118,11 @@ class ProviderConnectionError(ProviderGenericError):
 
 
 class ProviderQueryError(ProviderGenericError):
+    """query / backend error"""
+    pass
+
+
+class ProviderNotFoundError(ProviderGenericError):
     """query / backend error"""
     pass
 

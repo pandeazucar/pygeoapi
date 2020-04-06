@@ -27,11 +27,12 @@
 #
 # =================================================================
 
+import io
 import logging
 import os
-import rasterio
 
-from pygeoapi.provider.base import (BaseProvider, ProviderConnectionError)
+from pygeoapi.provider.base import (BaseProvider, ProviderConnectionError,
+                                    ProviderNotFoundError)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class FileSystemProvider(BaseProvider):
 
         :param provider_def: provider definition
 
-        :returns: pygeoapi.providers.elasticsearch_.ElasticsearchProvider
+        :returns: pygeoapi.provider.filesystem.FileSystemProvider
         """
 
         BaseProvider.__init__(self, provider_def)
@@ -56,6 +57,7 @@ class FileSystemProvider(BaseProvider):
             raise ProviderConnectionError(msg)
 
     def get_data(self, path):
+        resource_type = None
         root_link = None
         child_links = []
 
@@ -63,16 +65,16 @@ class FileSystemProvider(BaseProvider):
         data_path = self.data + path
 
         if '/' not in path:  # root
-            root_link = './catalog.json'
+            root_link = './'
         else:
             child_links.append({
                 'rel': 'parent',
-                'href': '../catalog.json'
+                'href': '../'
             })
 
             depth = path.count('/')
             root_path = '/'.replace('/', '../' * depth, 1)
-            root_link = os.path.join(root_path, 'catalog.json')
+            root_link = root_path
 
         content = {
             'links': [{
@@ -80,55 +82,122 @@ class FileSystemProvider(BaseProvider):
                 'href': root_link
                 }, {
                 'rel': 'self',
-                'href': './catalog.json'
+                'href': './'
                 }
             ]
         }
 
-        if not os.path.exists(data_path):
-            msg = 'Directory does not exist: {}'.format(data_path)
-            LOGGER.error(msg)
-            raise ProviderConnectionError(msg)
+        LOGGER.debug('Checking if path exists as raw file or directory')
+        if data_path.endswith(tuple(self.file_types)):
+            resource_type = 'raw_file'
+        elif os.path.exists(data_path):
+            resource_type = 'directory'
+        else:
+            LOGGER.debug('Checking if path exists as file via file_types')
+            for ft in self.file_types:
+                tmp_path = '{}{}'.format(data_path, ft)
+                if os.path.exists(tmp_path):
+                    resource_type = 'file'
+                    data_path = tmp_path
+                    break
 
-        if os.path.isdir(data_path):
+        if resource_type is None:
+            msg = 'Resource does not exist: {}'.format(data_path)
+            LOGGER.error(msg)
+            raise ProviderNotFoundError(msg)
+
+        if resource_type == 'raw_file':
+            with io.open(data_path, 'rb') as fh:
+                return fh.read()
+
+        elif resource_type == 'directory':
             for dc in os.listdir(data_path):
                 fullpath = os.path.join(data_path, dc)
                 if os.path.isdir(fullpath):
                     child_links.append({
                         'rel': 'child',
-                        'href': '{}/catalog.json'.format(dc)
+                        'href': '{}/'.format(dc)
                     })
                 elif os.path.isfile(fullpath):
-                    child_links.append({
-                        'rel': 'item',
-                        'href': '{}.json'.format(dc)
-                    })
-        elif os.path.isfile(data_path):
-            content['id'] = data_path
+                    basename, extension = os.path.splitext(dc)
+                    if extension in self.file_types:
+                        child_links.append({
+                            'rel': 'item',
+                            'href': './{}'.format(basename)
+                        })
+
+        elif resource_type == 'file':
+            filename = os.path.basename(data_path)
+            id_ = os.path.splitext(filename)[0]
+            content['id'] = id_
             content['type'] = 'Feature'
             content['properties'] = {}
+            content['assets'] = {}
 
-            d = rasterio.open(data_path)
-            content['bbox'] = [
-                d.bounds.left,
-                d.bounds.bottom,
-                d.bounds.right,
-                d.bounds.top,
-            ]
-            content['geometry'] = {
-                'type': 'Polygon',
-                'coordinates': [[
-                    [d.bounds.left, d.bounds.bottom],
-                    [d.bounds.left, d.bounds.top],
-                    [d.bounds.right, d.bounds.top],
-                    [d.bounds.right, d.bounds.bottom],
-                    [d.bounds.left, d.bounds.bottom]
-                ]]
+            content.update(_describe_file(data_path))
+
+            content['assets']['default'] = {
+                'href': './{}'.format(filename)
             }
-            for k, v in d.tags(1).items():
-                content['properties'][k] = v
-
-
 
         content['links'].extend(child_links)
+
         return content
+
+
+def _describe_file(filepath):
+
+    import fiona
+    import rasterio
+
+    content = {}
+
+    try:  # raster
+        LOGGER.debug('Testing raster data detection')
+        d = rasterio.open(filepath)
+        content['bbox'] = [
+            d.bounds.left,
+            d.bounds.bottom,
+            d.bounds.right,
+            d.bounds.top
+        ]
+        content['geometry'] = {
+            'type': 'Polygon',
+            'coordinates': [[
+                [d.bounds.left, d.bounds.bottom],
+                [d.bounds.left, d.bounds.top],
+                [d.bounds.right, d.bounds.top],
+                [d.bounds.right, d.bounds.bottom],
+                [d.bounds.left, d.bounds.bottom]
+            ]]
+        }
+        for k, v in d.tags(1).items():
+            content['properties'][k] = v
+    except rasterio.errors.RasterioIOError:
+        LOGGER.debug('Testing vector data detection')
+        d = fiona.open(filepath)
+        content['bbox'] = [
+            d.bounds[0],
+            d.bounds[1],
+            d.bounds[2],
+            d.bounds[3]
+        ]
+        content['geometry'] = {
+            'type': 'Polygon',
+            'coordinates': [[
+                [d.bounds[0], d.bounds[1]],
+                [d.bounds[0], d.bounds[3]],
+                [d.bounds[2], d.bounds[3]],
+                [d.bounds[2], d.bounds[1]],
+                [d.bounds[0], d.bounds[1]]
+            ]]
+        }
+        if d.driver == 'ESRI Shapefile':
+            id_ = os.path.splitext(os.path.basename(filepath))[0]
+            content['assets'] = {}
+            for suffix in ['shx', 'dbf', 'prj']:
+                content['assets'][suffix] = {
+                    'href': './{}.{}'.format(id_, suffix)
+                }
+
+    return content

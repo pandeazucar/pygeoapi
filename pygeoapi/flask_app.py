@@ -231,9 +231,8 @@ def execute_process(name=None):
 
 
 @APP.route('/stac', defaults={'path': ''})
-@APP.route('/stac/<path:path>.json')
-@APP.route('/stac/<path:path>/catalog.json')
-def stac(path):
+@APP.route('/stac/<path:path>')
+def stac_catalog(path):
     """
     STAC access point
 

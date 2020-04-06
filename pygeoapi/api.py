@@ -44,7 +44,8 @@ from pygeoapi.linked_data import (geojson2geojsonld, jsonldify,
 from pygeoapi.log import setup_logger
 from pygeoapi.plugin import load_plugin, PLUGINS
 from pygeoapi.provider.base import (
-    ProviderGenericError, ProviderConnectionError, ProviderQueryError)
+    ProviderGenericError, ProviderConnectionError, ProviderNotFoundError,
+    ProviderQueryError)
 from pygeoapi.util import (dategetter, json_serial, render_j2_template,
                            str2bool, TEMPLATES)
 
@@ -960,8 +961,17 @@ class API(object):
             return headers_, 404, json.dumps(exception)
 
         LOGGER.debug('Loading provider')
-        p = load_plugin('provider',
-                        self.config['datasets'][dataset]['provider'])
+        try:
+            p = load_plugin('provider',
+                            self.config['datasets'][dataset]['provider'])
+        except ProviderConnectionError as err:
+            LOGGER.error(err)
+            exception = {
+                'code': 'NoApplicableCode',
+                'description': 'connection error (check logs)'
+            }
+            LOGGER.error(exception)
+            return headers_, 500, json.dumps(exception)
 
         id_ = '{}-stac'.format(dataset)
         stac_version = '0.6.2'
@@ -974,23 +984,28 @@ class API(object):
             'links': []
         }
         try:
-            stac_data = p.get_data(path.replace(dataset, ''))
-        except Exception as err:
-            print("ERR", err)
+            stac_data = p.get_data(path.replace(dataset, '', 1))
+        except ProviderNotFoundError as err:
+            LOGGER.error(err)
             exception = {
                 'code': 'NotFound',
-                'description': 'Icollection not found'
+                'description': 'resource not found'
             }
-            LOGGER.error(exception)
             return headers_, 404, json.dumps(exception)
+        except Exception as err:
+            LOGGER.error(err)
+            exception = {
+                'code': 'NoApplicableCode',
+                'description': 'data query error'
+            }
+            return headers_, 500, json.dumps(exception)
 
-
-        #for link in stac_data['links']:
-        #    content['links'].append(link)
-        content.update(stac_data)
-
-        return headers_, 200, json.dumps(content, default=json_serial)
-
+        if isinstance(stac_data, dict):
+            content.update(stac_data)
+            return headers_, 200, json.dumps(content, default=json_serial)
+        else:  # send back file
+            headers_.pop('Content-Type', None)
+            return headers_, 200, stac_data
 
     @pre_process
     @jsonldify
