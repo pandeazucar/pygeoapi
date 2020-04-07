@@ -56,15 +56,19 @@ class FileSystemProvider(BaseProvider):
             LOGGER.error(msg)
             raise ProviderConnectionError(msg)
 
-    def get_data(self, path):
+    def get_data(self, baseurl, urlpath, dirpath):
+        print("BASEURL", baseurl)
+        print("URLPATH", urlpath)
+        print("DIRPATH", dirpath)
+
         resource_type = None
         root_link = None
         child_links = []
 
-        data_path = os.path.join(self.data, path)
-        data_path = self.data + path
+        data_path = os.path.join(self.data, dirpath)
+        data_path = self.data + dirpath
 
-        if '/' not in path:  # root
+        if '/' not in dirpath:  # root
             root_link = './'
         else:
             child_links.append({
@@ -74,11 +78,11 @@ class FileSystemProvider(BaseProvider):
             })
             child_links.append({
                 'rel': 'parent',
-                'href': '../?f=html',
+                'href': '../',
                 'type': 'text/html'
             })
 
-            depth = path.count('/')
+            depth = dirpath.count('/')
             root_path = '/'.replace('/', '../' * depth, 1)
             root_link = root_path
 
@@ -89,7 +93,7 @@ class FileSystemProvider(BaseProvider):
                 'type': 'application/json'
                 }, {
                 'rel': 'root',
-                'href': '{}?f=html'.format(root_link),
+                'href': './{}'.format(root_link),
                 'type': 'text/html'
                 }, {
                 'rel': 'self',
@@ -97,7 +101,7 @@ class FileSystemProvider(BaseProvider):
                 'type': 'application/json',
                 }, {
                 'rel': 'self',
-                'href': './?f=html',
+                'href': './',
                 'type': 'text/html'
                 }
             ]
@@ -130,27 +134,30 @@ class FileSystemProvider(BaseProvider):
             for dc in os.listdir(data_path):
                 fullpath = os.path.join(data_path, dc)
                 if os.path.isdir(fullpath):
+                    newpath = '{}/{}/{}'.format(baseurl, urlpath, dc)
                     child_links.append({
                         'rel': 'child',
-                        'href': '{}/?f=json'.format(dc),
+                        'href': '{}?f=json'.format(newpath),
                         'type': 'application/json'
                     })
                     child_links.append({
                         'rel': 'child',
-                        'href': '{}/?f=html'.format(dc),
+                        'href': newpath,
                         'type': 'text/html'
                     })
                 elif os.path.isfile(fullpath):
                     basename, extension = os.path.splitext(dc)
+                    newpath = '{}/{}/{}'.format(baseurl, urlpath, basename)
                     if extension in self.file_types:
                         child_links.append({
                             'rel': 'item',
-                            'href': './{}?f=html'.format(basename),
-                            'type': 'text/html'
+                            'href': '{}?f=json'.format(newpath),
+                            'type': 'application/json'
                         })
                         child_links.append({
                             'rel': 'item',
-                            'href': './{}'.format(basename)
+                            'href': newpath,
+                            'type': 'text/html'
                         })
 
         elif resource_type == 'file':
@@ -161,6 +168,7 @@ class FileSystemProvider(BaseProvider):
             content['properties'] = {}
             content['assets'] = {}
 
+            print("DATA_PATH", data_path)
             content.update(_describe_file(data_path))
 
             content['assets']['default'] = {
@@ -177,7 +185,7 @@ def _describe_file(filepath):
     import fiona
     import rasterio
 
-    content = {}
+    content = {'properties': {}}
 
     try:  # raster
         LOGGER.debug('Testing raster data detection')

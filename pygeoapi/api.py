@@ -33,6 +33,7 @@ Returns content from plugins and sets reponses
 from datetime import datetime
 import json
 import logging
+import os
 import urllib.parse
 
 from dateutil.parser import parse as dateparse
@@ -975,7 +976,7 @@ class API(object):
                 })
                 content['links'].append({
                     'rel': 'collection',
-                    'href': '{}?f=html'.format(key),
+                    'href': key,
                     'type': 'text/html'
                 })
 
@@ -1036,7 +1037,11 @@ class API(object):
             'links': []
         }
         try:
-            stac_data = p.get_data(path.replace(dataset, '', 1))
+            stac_data = p.get_data(
+                os.path.join(self.config['server']['url'], 'stac'),
+                path,
+                path.replace(dataset, '', 1)
+            )
         except ProviderNotFoundError as err:
             LOGGER.error(err)
             exception = {
@@ -1058,8 +1063,16 @@ class API(object):
 
             if format_ == 'html':  # render
                 headers_['Content-Type'] = 'text/html'
-                content = render_j2_template(self.config, 'stac-catalog.html',
-                                             content)
+                content['path'] = path
+                if 'assets' in content:  # item view
+                    content = render_j2_template(self.config,
+                                                 'stac-catalog-item.html',
+                                                 content)
+                else:
+                    content = render_j2_template(self.config,
+                                                 'stac-catalog-catalog.html',
+                                                 content)
+
                 return headers_, 200, content
 
             return headers_, 200, json.dumps(content, default=json_serial)
